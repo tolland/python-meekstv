@@ -15,11 +15,13 @@ def main(argv):
    candidatesonly = False
    stopatballot = 0
    ignorevotesfilter = 0
-   bumpvotes = 0
+   bumpvotecand = 0
    bumpvotesnum = 0
+   showcandidatesforvoter = 0
+   showvotesforcandidate = 0
    url = ""
    try:
-      opts, args = getopt.getopt(argv,"vf:",["excands=","excludenamedcands=","exvotes=","filename=","url=","candidatesonly","stopatballot=","ignorevotesfilter=","bumpvotes=","bumpvotesnum="])
+      opts, args = getopt.getopt(argv,"vf:",["excands=","excludenamedcands=","exvotes=","filename=","url=","candidatesonly","stopatballot=","ignorevotesfilter=","bumpvotecand=","bumpvotesnum=","showcandidatesforvoter=","showvotesforcandidate"])
    except getopt.GetoptError:
       print __file__ +" --excands <inputfile> --exvotes <outputfile>"
       sys.exit(2)
@@ -32,6 +34,10 @@ def main(argv):
          sys.exit()
       elif opt in ("--candidatesonly"):
          candidatesonly = True
+      elif opt in ("--showcandidatesforvoter"):
+         showcandidatesforvoter = arg
+      elif opt in ("--showvotesforcandidate"):
+         showvotesforcandidate = True
       elif opt in ("-f", "--filename"):
          inputfile = arg
       elif opt in ("--url"):
@@ -48,8 +54,8 @@ def main(argv):
          excands = arg
       elif opt in ("--exvotes"):
          exvotes = arg
-      elif opt in ("--bumpvotes"):
-         bumpvotes = int(arg)
+      elif opt in ("--bumpvotecand"):
+         bumpvotecand = int(arg)
       elif opt in ("--bumpvotesnum"):
          bumpvotesnum = int(arg)
    
@@ -85,6 +91,14 @@ def main(argv):
      blt.show_candidates()
      sys.exit()
 
+   if showvotesforcandidate:
+     blt.show_votes_for_candidates()
+     sys.exit()
+
+   if showcandidatesforvoter:
+     blt.show_candidates_for_voter(showcandidatesforvoter)
+     sys.exit()
+
    if ignorevotesfilter:
      
      ballots = blt.all_ballots()
@@ -96,18 +110,14 @@ def main(argv):
        #print foo
        if foo[0] != ignorevotesfilter:
          ballots2.append(foo)
-         
-
-     
-     
      
      blt.set_ballots(ballots2)
      
-     
-     
    if stopatballot:
      elected,rejected,candidate_weight = stv.mainthing3(blt, stopatballot, quiet)
-
+     
+   elif bumpvotecand:
+     elected,rejected,candidate_weight = stv.mainthing_bumpvotes(blt, stopatballot, quiet, bumpvotecand, bumpvotesnum)
    
    else:
      dq = stv.droop_quota(blt.num_valid_ballots(),blt.places())        

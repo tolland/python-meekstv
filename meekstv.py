@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 from __future__ import division
 
 import numpy as np
@@ -15,7 +14,7 @@ class Blt(object):
   places() <- returns the int of number of open slots to fill
   candidates() <- returns a list of candidates
   all_ballots() <- list of ballots, which is a list of lists, rank in DESC order
-  
+
   This is some ridiculous stuff going on in here
   '''
   def __init__(self, inputfile,excands,exvotes,excludenamedcands):
@@ -23,8 +22,11 @@ class Blt(object):
     self.data = open(inputfile).read().splitlines()
     self.np = int(self.data[0].split(" ")[1])
     self.nc = int(self.data[0].split(" ")[0])
-    
-    """The list of exluded ballots is passed as a string, e.g. 0,2,31 
+
+    #print self.nc
+    #print self.np
+
+    """The list of exluded ballots is passed as a string, e.g. 0,2,31
     and this needs to be a list to be useful
     The value is passed as the blt index before any other parsing.
 
@@ -36,18 +38,17 @@ class Blt(object):
     --excands=0,2 would exclude and result in a single ballot
     """
     excluded_ballots_by_index = []
-    
+
     if exvotes:
       for i in exvotes.split(","):
         excluded_ballots_by_index.append(int(i))
-        
-    
+
     self.excluded_cands_by_index = []
-    
+
     if excands:
       for i in excands.split(","):
-        self.excluded_cands_by_index.append(int(i.strip()))    
-    
+        self.excluded_cands_by_index.append(int(i.strip()))
+
     # initialize the start value to some int, this should end up being
     # something like votes+1 in the blt file
     candidates_start_line=0
@@ -55,35 +56,35 @@ class Blt(object):
 
     #loop the lines list, starting at line 2, and quit at end marker
     for num in xrange(start_looking_for_ballots_line, len(self.data)):
-      # a line containing a single character "0" appears to mark the end 
+      # a line containing a single character "0" appears to mark the end
       # of ballots, so loop until we find that.
       if self.data[num] == "0":
         #make a numpy array of the range of lines that are ballots
         #@todo this is still a string?
         self.ballots = np.array(self.data[1:num])
-                
+
         #store this to use for candidate search after
         candidates_start_line=num+1
         break
-    
+
     temparr = []
     #print excluded_ballots_by_index
     for i in xrange(len(self.ballots)):
       if i not in excluded_ballots_by_index:
         temparr.append(self.ballots[i])
-    
+
     self.ballots=temparr
-        
+
     for excluded_ballot in excluded_ballots_by_index:
       #del self.ballots[excluded_ballot:excluded_ballot]
       self.ballots = np.delete(self.ballots, excluded_ballot)
-      
+
     #print candidates_start_line
     #print self.ballots
-    
+
     self.ballots = [ np.array(item.split(" ")) for item in self.ballots ]
     self.ballots = np.array(self.ballots)
-    
+
     #cols = [ i for i in xrange(self.nc+2) ]
     """A ballot row looks like this for 2014;
     (29) 1 7 12 11 16 15 5 19 10 14 4 8 6 2 3 18 13 17 1 9 0
@@ -92,18 +93,14 @@ class Blt(object):
     A 2015 vote looks like this;
     1 12 9 2 4 3 5 11 10 13 6 1 7 8 0
     So remove those unecessary parts"""
-    
 
-    
     if (self.ballots[0][0].startswith("(")):
-      cols = [ i for i in xrange(self.nc+2) if i not in (0,1,self.nc+2) ]
+      cols = [ i for i in xrange(self.nc+2) if i not in (0,1, self.nc+2) ]
     else:
-      cols = [ i for i in xrange(self.nc+1) if i not in (0,self.nc+1) ]
-    
-
+      cols = [ i for i in xrange(self.nc+1) if i not in (0, self.nc+1) ]
 
     self.ballots = self.ballots[:, cols]
-    
+
     buff = []
 
     """subtract 1 from each ranked cand to match python list indexing"""
@@ -113,7 +110,7 @@ class Blt(object):
     for row in range(len(self.ballots)):
         #print  map(int, ballots[row])
         buff.append( map(int_reindex, self.ballots[row]) )
-        
+
     self.ballots=buff
 
     #print (np.array(self.ballots).shape)
@@ -127,7 +124,7 @@ class Blt(object):
 
     for i in range(len(c)):
         self.candidates_list.append(c[i])
-        
+
     #print "\n".join(self.candidates_list[:])
     #pprint.pprint( self.ballots )
 
@@ -168,6 +165,37 @@ class Blt(object):
       pass
       print message
 
+  def show_candidates_for_voter(self, num):
+    if num:
+      self.ballots[int(num)-1]
+      cnt=1
+      for candidate in self.ballots[int(num)-1]:
+        print "("+str(cnt).zfill(2)+")"+self.candidates_list[candidate]
+        cnt = cnt+1
+
+
+  def show_votes_for_candidates(self):
+
+    candidate_list = {}
+
+    for foo in xrange(len(self.candidates_list)):
+      candidate_list[foo] = [0] * len(self.candidates_list)
+
+    #print   candidate_list
+
+    for ballot in self.ballots:
+      #print ballot
+      for pos in xrange(len(ballot)):
+        candidate_list[ballot[pos]][pos] = candidate_list[ballot[pos]][pos]+1
+        #print "candidate %s was ranked %d" % (self.candidates_list[ballot[pos]], pos)
+      #print ""
+
+    for cand in candidate_list:
+      print self.candidates_list[cand]
+      for foo in xrange(len(candidate_list[cand])):
+        #print "position %s had %d votes" % (foo+1, candidate_list[cand][foo])
+        print str(candidate_list[cand][foo]) + ("." * candidate_list[cand][foo])
+
 
 # the opavote system uses a modified droop quota
 # http://en.wikipedia.org/wiki/Droop_quota
@@ -185,11 +213,15 @@ def mainthing2(blt, quiet=True):
 
 def mainthing3(blt, limitnum, quiet=True):
     print "limiting to "+str(limitnum)
-  
+
     return mainthing(blt.all_ballots()[:limitnum], blt.places(), blt.candidates(), blt.excluded(), quiet)
 
+def mainthing_bumpvotes(blt, limitnum, quiet=True, bumpvotecand=0, bumpvotesnum=0):
 
-def mainthing(ballots, places, candidates, excluded, quiet=True):
+    return mainthing(blt.all_ballots(), blt.places(), blt.candidates(), blt.excluded(), quiet, bumpvotecand, bumpvotesnum)
+
+
+def mainthing(ballots, places, candidates, excluded, quiet=True, bumpcand=0, bumpcandvotes=0):
   """
   candidates has a dummy element at index zero
   """
@@ -205,18 +237,18 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
     pr(buffstr.rjust(30))
 
 
-    
-    
+
+
 
   elected = []
   rejected = []
-  
+
   #print places
 
-  """initialize a list of 0 for each candidate, respecting that zero 
+  """initialize a list of 0 for each candidate, respecting that zero
   is a dummy"""
   candidate_votes = [0] * (len(candidates))
-  
+
   #pprint.pprint( candidate_votes )
 
   # status 0=hopful, 1=excluded, 2=elected
@@ -227,7 +259,7 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
   candidate_weight = [1] * (len(candidates))
   #pprint.pprint( candidate_weight )
 
-  
+
 
   for ex in excluded:
       candidate_weight[ex] = 0
@@ -240,7 +272,7 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
   #print candidate_votes
 
   dq = droop_quota(len(ballots[:]),places)
-      
+
   pr( "==============================================================" )
   pr( "Droop quota is "+str(round(dq,2)) )
   pr( "places is "+str(places) )
@@ -254,26 +286,29 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
           pr( candidates[candidate].rjust(20), )
           pr( weights[candidate] )
       pr("")
-      
+
   def print_votes(votes):
       for candidate in xrange(len(candidates)):
         if(votes[candidate]!=0):
           pr( candidates[candidate].rjust(20) + ":" + str(votes[candidate]) )
-      
+
 
   round_num = 1
-  
+
   while places > 0:
 
 
       pr( "Round "+str(round_num)+"  -- candidates remaining >>> "+str(places) +" <<< ")
       round_num = round_num+1
-      
+
       #print candidates
       candidate_votes = [0] * (len(candidates))
-      
+
+      if bumpcand:
+        candidate_votes[bumpcand] = bumpcandvotes
+
       logout = ""
-      
+
       for ballot in ballots[:]:
 
           for candidate in xrange(len(candidates)):
@@ -285,24 +320,24 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
 
 
                   if ballot[rank]==candidate:
-                      votebuff *=  candidate_weight[candidate]                  
+                      votebuff *=  candidate_weight[candidate]
                       break
                   else:
-                                        
-                    
+
+
                       if(candidate_weight[candidate]!=1):
                           #print "rank="+str(rank),"weight="+ str(candidate_weight[candidate]), "votebuf="+str(votebuff)
                           pass
 
                       votebuff *=  (1-candidate_weight[ballot[rank]])
 
-                      
-              candidate_votes[candidate]        += votebuff
-    
 
-              
+              candidate_votes[candidate]        += votebuff
+
+
+
       jumpout = False # we only want to do one elect or elim each cycle
-      
+
       for candidate in range(len(candidates)):
         #print "comparing "+candidates[candidate]+" votes "+str(candidate_votes[candidate])+" against "+str(dq)
         if candidate_votes[candidate] > dq:
@@ -316,10 +351,10 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
           candidate_weight[candidate] *= (dq/candidate_votes[candidate])
         if (candidate_weight[candidate]!=1 and candidate_weight[candidate]!=0):
           logout = logout +   ( candidates[candidate][:21].rjust(20)+": updating weight to "+str(round(candidate_weight[candidate],4) )) + "\n"
-              
+
       #print ( candidate_weight)
       #print ( candidate_votes      )
-      
+
       if not jumpout:
         if(places>0):
             minVotes=99999
@@ -327,7 +362,7 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
             for loser in range(len(candidate_status)):
 
 
-              
+
                 if(candidate_status[loser]==0):
                     if(candidate_votes[loser]<minVotes):
                         minVotes=candidate_votes[loser]
@@ -341,7 +376,7 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
 
             logout = candidates[loserId][:21].rjust(20)+": Candidate eliminated #"+str(loserId)+" " + \
             "with vote count " +str(round(minVotes,4)) + "\n" + logout
-      
+
       pr("summary of round")
       print_votes(candidate_votes)
       pr ("\n")
@@ -355,6 +390,8 @@ def mainthing(ballots, places, candidates, excluded, quiet=True):
               print( ("winner "+candidates[candidate] + "("+str(candidate)+") ("+str(round(candidate_weight[candidate],3)) +")").rjust(50) )
           if candidate_status[candidate] == 0:
               pr( ("field "+candidates[candidate] + "("+str(candidate)+") ("+str(round(candidate_weight[candidate],3)) +")").rjust(50) )
-          
-            
+
+
   return elected, rejected, candidate_weight
+
+
