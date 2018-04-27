@@ -2,7 +2,9 @@
 # meekstv
 `python-meekstv` is a Python 2.7 package implementing [Meeks](https://en.wikipedia.org/wiki/Counting_single_transferable_votes#Meek) 's
 [STV](https://en.wikipedia.org/wiki/Single_transferable_vote) ranked voting
-algorithm. For the simple case it can be used as follows to show you who would
+algorithm.
+
+For the simple case it can be used as follows to show you who would
 be elected from a [BLT file](https://www.opavote.com/help/overview#blt-file-format) of voting data;
 
 ~~~~
@@ -17,8 +19,9 @@ meekstv$ ./main.py \
 ## File format
 
 The [BLT file](https://www.opavote.com/help/overview#blt-file-format) contains the data on the number/names of candidates, the number of
-seats being contested, and each individual (anonymized) vote. From this data the
-result of the election can be reconstructed.
+seats being contested, and each individual (anonymized) vote. It is used by
+services like [OpaVote](https://www.opavote.com/). From this data
+the result of the election can be reconstructed.
 
 The file format looks like
 this;
@@ -62,10 +65,15 @@ This option was required for that data file, because vote 173 was blank;
 (174) 1 13 17 6 10 9 12 15 16 7 11 2 4 8 19 14 3 18 1 5 0
 ~~~~
 
+### Verbose round by round reporting
+
 If you want to see how each round of the voting played out, give the `-v` option
 and each elimination and election is shown in full;
 
 ~~~~
+$ ./main.py -v  --exvotes=173  \
+--url=https://london.hackspace.org.uk/organisation/elections/2014-election-ballots.blt
+
 >>>======================
 Excluded candidates are:
 Removed votes are:  173
@@ -74,28 +82,40 @@ inputfile votes are:
 quiet is:  False
 <<<======================
               Martin Clarke(0)
-                   Sam Cook(1)
-               Thomas Greer(2)
-         Matthew Israelsohn(3)
-                 Nick Large(4)
-               Ruben Martin(5)
-           Eugene Nadyrshin(6)
-                Lucia Naidu(7)
-              Blanca Regina(8)
-               Tim Reynolds(9)
-                Philip Roy(10)
-               Henry Sands(11)
-                Ryan Sayre(12)
-            David Sullivan(13)
-          Heather Sullivan(14)
-         Samantha Thompson(15)
-             Jonty Wareing(16)
+...
                  Tom Wyatt(17)
          NO FURTHER PLACES(18)
 ==============================================================
 Droop quota is 49.67
 places is 5
 votes are 298
+
+Round 1  -- candidates remaining >>> 5 <<<
+summary of round
+       Martin Clarke:7
+            Sam Cook:2
+        Thomas Greer:15
+  Matthew Israelsohn:20
+          Nick Large:2
+        Ruben Martin:4
+    Eugene Nadyrshin:39
+         Lucia Naidu:20
+       Blanca Regina:12
+        Tim Reynolds:7
+          Philip Roy:8
+         Henry Sands:8
+          Ryan Sayre:15
+      David Sullivan:1
+    Heather Sullivan:5
+   Samantha Thompson:34
+       Jonty Wareing:88
+           Tom Wyatt:9
+   NO FURTHER PLACES:2
+
+
+       Jonty Wareing: elected with 88.0
+       Jonty Wareing: updating weight to 0.5644
+
 ...
   Matthew Israelsohn: elected with 52.8172
   Matthew Israelsohn: updating weight to 0.9404
@@ -111,9 +131,10 @@ votes are 298
                   winner Jonty Wareing(16) (0.435)
 ~~~~
 
+### Withdrawn candidates
 
 Another scenario that is interesting, is to consider how votes are reallocated
-if some pariticular candidate was hypothetically withdrawn;
+if some particular candidate was hypothetically withdrawn;
 
 First we find the number for the candidate;
 
